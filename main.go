@@ -14,20 +14,31 @@ import (
 )
 
 var (
-	isHelp     = flag.Bool("h", false, "Show this help")
-	isDel      = flag.Bool("del", false, "delete this entry")
-	isVerbose  = flag.Bool("v", false, "verbose")
-	maxMinutes = flag.Int("m", 5, "max minutes to cache output (rounded)")
-	dir        = flag.String("dir", os.Getenv("HOME")+"/.cache/clicache", "directory to store/retrieve cache info")
+	isHelp    = flag.Bool("h", false, "Show this help")
+	isDel     = flag.Bool("del", false, "delete this entry")
+	isVerbose = flag.Bool("v", false, "verbose")
+	maxDur    = flag.String("t", "5m", "max duration to cache output (cache keys are rounded by this amount)")
+	dir       = flag.String("dir", os.Getenv("HOME")+"/.cache/clicache", "directory to store/retrieve cache info")
 )
 
 // TODO: os-independent HOME-dir
 // TODO: (optionally) include CWD in hash
 func main() {
 	flag.Parse()
+	if *isHelp {
+		flag.PrintDefaults()
+		os.Exit(1)
+	}
 	args := flag.Args()
 	hashed := hash(args)
-	filename := file(hashed, time.Now(), time.Minute*time.Duration(*maxMinutes))
+	maxDuration, err := time.ParseDuration(*maxDur)
+	if err != nil {
+		if *isVerbose {
+			log.Printf("Cache file error: %s", err)
+		}
+		os.Exit(1)
+	}
+	filename := file(hashed, time.Now(), maxDuration)
 	if _, err := os.Stat(filename); err != nil {
 		if !os.IsNotExist(err) {
 			//exit
