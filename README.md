@@ -12,3 +12,5 @@ The initial call takes about 30 seconds, the second invocation takes millisecond
 You can also delete entries with `-del`:
 
     clicache -del kubectl --context=dev get pod
+
+For more options, use `clicache -h`
