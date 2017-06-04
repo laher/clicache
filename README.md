@@ -2,6 +2,12 @@
 
 Cache the STDOUT of a given command, for no more than a given duration (default is 5 minutes).
 
+## Install
+
+    go get -u github.com/laher/clicache
+
+## Overview
+
 Call this command twice, and the second time will be super quick:
 
     clicache kubectl --context=dev get pod
