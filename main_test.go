@@ -19,11 +19,11 @@ func TestHash(t *testing.T) {
 }
 
 func TestFile(t *testing.T) {
-	hash := uint32(123)
+	hash := "123"
 	ti := time.Time{}
 
 	f1 := file(hash, ti, 5*time.Minute)
-	f2 := file(uint32(124), ti, 5*time.Minute)
+	f2 := file("124", ti, 5*time.Minute)
 	if f1 == f2 {
 		t.Error("Filenames should differ", f1, f2)
 	}

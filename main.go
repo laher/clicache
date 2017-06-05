@@ -104,16 +104,17 @@ func main() {
 	}
 }
 
-func hash(args []string) uint32 {
+//non-cryptographic hash
+func hash(args []string) string {
 	s := strings.Join(args, "_")
-	h := fnv.New32a()
+	h := fnv.New64a()
 	h.Write([]byte(s))
-	return h.Sum32()
+	return fmt.Sprintf("%d", h.Sum64())
 }
 
-func file(hash uint32, time time.Time, d time.Duration) string {
+func file(hash string, time time.Time, d time.Duration) string {
 	t := time.Truncate(d)
-	return fmt.Sprintf("%s/%d-%d.stdout", *dir, hash, t.Unix())
+	return fmt.Sprintf("%s/%s-%d.stdout", *dir, hash, t.Unix())
 }
 
 func run(args []string, out io.Writer) (int, error) {
