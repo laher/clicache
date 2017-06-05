@@ -17,20 +17,38 @@ var (
 	isHelp    = flag.Bool("h", false, "Show this help")
 	isDel     = flag.Bool("del", false, "delete this entry")
 	isVerbose = flag.Bool("v", false, "verbose")
+	isHashCwd = flag.Bool("c", false, "include cwd in hash")
 	maxDur    = flag.String("t", "5m", "max duration to cache output (cache keys are rounded by this amount)")
 	dir       = flag.String("dir", os.Getenv("HOME")+"/.cache/clicache", "directory to store/retrieve cache info")
 )
 
-// TODO: os-independent HOME-dir
+// TODO: os-independent HOME-dir (currently Windows not supported AFAIK)
 // TODO: (optionally) include CWD in hash
+// TODO: delete-all cache entries
+// MAYBE: clear old entries automatically
 func main() {
 	flag.Parse()
-	if *isHelp {
+	var (
+		args   = flag.Args()
+		hashed string
+	)
+	if *isHelp || len(args) < 1 {
+		fmt.Println("clicache caches the STDOUT of a given command\n")
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
-	args := flag.Args()
-	hashed := hash(args)
+	if *isHashCwd {
+		wd, err := os.Getwd()
+		if err != nil {
+			if *isVerbose {
+				log.Printf("Working dir error: %s", err)
+			}
+			os.Exit(1)
+		}
+		hashed = hash(append([]string{wd}, args...))
+	} else {
+		hashed = hash(args)
+	}
 	maxDuration, err := time.ParseDuration(*maxDur)
 	if err != nil {
 		if *isVerbose {
@@ -74,6 +92,7 @@ func main() {
 			if *isVerbose {
 				log.Printf("Error (exit code %d): %s", ret, err)
 			}
+			os.Exit(ret)
 		}
 
 		os.Exit(ret)
@@ -118,9 +137,13 @@ func file(hash string, time time.Time, d time.Duration) string {
 }
 
 func run(args []string, out io.Writer) (int, error) {
+	if len(args) < 1 {
+		return 1, fmt.Errorf("No command supplied")
+	}
 	p, err := exec.LookPath(args[0])
 	if err != nil {
 		log.Printf("Couldn't find exe %s - %s", p, err)
+		return 1, err
 	}
 	cmd := exec.Command(args[0])
 	cmd.Args = args
