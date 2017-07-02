@@ -4,6 +4,8 @@ Cache the STDOUT of a given command, for no more than a given duration (default 
 
 _NOTE: I created this with `kubectl get pod` in mind. It's not specific to `kubectl` (part of the kubernetes project) but it would need some more work to become more generally useful._
 
+NOTE: This is totally experimental. Only use it for something with smallish output, and be careful with write commands.
+
 ## Install
 
     go get -u github.com/laher/clicache

@@ -33,7 +33,8 @@ func main() {
 		hashed string
 	)
 	if *isHelp || len(args) < 1 {
-		fmt.Println("clicache caches the STDOUT of a given command\n")
+		fmt.Println("clicache caches the STDOUT of a given command")
+		fmt.Println("")
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
@@ -56,7 +57,7 @@ func main() {
 		}
 		os.Exit(1)
 	}
-	filename := file(hashed, time.Now(), maxDuration)
+	filename, tmpFilename := file(hashed, time.Now(), maxDuration)
 	if _, err := os.Stat(filename); err != nil {
 		if !os.IsNotExist(err) {
 			//exit
@@ -69,6 +70,7 @@ func main() {
 			// OK
 			os.Exit(0)
 		}
+		// new file
 		err := os.MkdirAll(*dir, 0700)
 		if err != nil {
 			if *isVerbose {
@@ -76,8 +78,9 @@ func main() {
 			}
 			os.Exit(1)
 		}
+
 		// redirect IO
-		file, err := os.Create(filename)
+		file, err := os.Create(tmpFilename)
 		if err != nil {
 			if *isVerbose {
 				log.Printf("Error (create file): %s", err)
@@ -85,16 +88,26 @@ func main() {
 			os.Exit(1)
 		}
 		defer file.Close()
-
 		// tee output to file
 		ret, err := run(args, file)
 		if err != nil || ret != 0 {
 			if *isVerbose {
-				log.Printf("Error (exit code %d): %s", ret, err)
+				log.Printf("Error (exit code %d): %v", ret, err)
 			}
+			err := file.Sync()
+			log.Printf("Error (while synching file): %v", err)
+			err = file.Close()
+			log.Printf("Error (while closing file): %v", err)
+
+			err = os.Remove(tmpFilename)
+			log.Printf("Error (deleting file): %v", err)
 			os.Exit(ret)
 		}
-
+		err = os.Rename(tmpFilename, filename)
+		if err != nil {
+			log.Printf("Error (moving file into place): %v", err)
+			os.Exit(1)
+		}
 		os.Exit(ret)
 	} else {
 		if *isDel {
@@ -131,9 +144,10 @@ func hash(args []string) string {
 	return fmt.Sprintf("%d", h.Sum64())
 }
 
-func file(hash string, time time.Time, d time.Duration) string {
+func file(hash string, time time.Time, d time.Duration) (string, string) {
 	t := time.Truncate(d)
-	return fmt.Sprintf("%s/%s-%d.stdout", *dir, hash, t.Unix())
+
+	return fmt.Sprintf("%s/%s-%d.stdout", *dir, hash, t.Unix()), fmt.Sprintf("%s/%s-%d.stdout.tmp", *dir, hash, time.UnixNano())
 }
 
 func run(args []string, out io.Writer) (int, error) {
